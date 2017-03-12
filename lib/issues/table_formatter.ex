@@ -1,0 +1,53 @@
+defmodule Issues.TableFormatter do
+  import Enum, only: [each: 2, map: 2, map_join: 3, max: 1]
+
+  @doc """
+  Takes a list of row data, where each row is a Map, and a list of headers.
+  Prints a table to STDOUT of the data from each row identified by each
+  header. That is, each header identifies a column, and those columns are
+  extracted and printed from the rows. We calculate the width of each column to
+  fit the longest element in that column.
+  """
+  def print_table_for_columns(rows, headers) do
+    with data_by_columns = split_into_columns(rows, headers),
+         column_widths   = widths_of(data_by_columns),
+         format          = format_for(column_widths)
+    do
+      puts_one_line_in_colums(headers, format)
+      IO.puts(separator(column_widths))
+      puts_in_columns(data_by_columns, format)
+    end
+  end
+
+  defp split_into_columns(rows, headers) do
+    for header <- headers do
+      for row <- rows, do: printable(row[header])
+    end
+  end
+
+  defp printable(str) when is_binary(str), do: str
+  defp printable(str), do: to_string(str)
+
+  defp widths_of(columns) do
+    for column <- columns, do: column |> map(&String.length/1) |> max
+  end
+
+  defp format_for(column_widths) do
+    map_join(column_widths, " | ", fn width -> "~-#{width}s" end) <> "~n"
+  end
+
+  defp separator(column_widths) do
+    map_join(column_widths, "-+-", fn width -> List.duplicate("-", width) end)
+  end
+
+  defp puts_in_columns(data_by_columns, format) do
+    data_by_columns
+    |> List.zip
+    |> map(&Tuple.to_list/1)
+    |> each(&puts_one_line_in_colums(&1, format))
+  end
+
+  defp puts_one_line_in_colums(fields, format) do
+    :io.format(format, fields)
+  end
+end
